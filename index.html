@@ -147,18 +147,6 @@
       <label for="mTimer">Timer's Name (optional)</label>
       <input type="text" id="mTimer" placeholder="Who is timing today?" autocomplete="off">
     </div>
-
-    <div class="card">
-      <h2>Default Recipients (optional)</h2>
-      <p style="font-size:12px;color:#9c8e72;margin:-4px 0 12px;">Saved on this phone. You can still change the recipient when you share.</p>
-
-      <label for="mEmail">Club Email</label>
-      <input type="text" id="mEmail" placeholder="e.g. committee@spjaintmc.org" autocomplete="off">
-
-      <label for="mWhatsApp">WhatsApp Number</label>
-      <input type="text" id="mWhatsApp" placeholder="Full intl format, e.g. 6591234567" autocomplete="off">
-      <p style="font-size:11px;color:#9c8e72;margin-top:-6px;">Country code, no + or spaces. Leave blank to pick a chat each time.</p>
-    </div>
     <button class="btn btn-primary btn-wide" id="beginBtn">Begin Meeting &rarr;</button>
     <p style="text-align:center;font-size:12px;color:#9c8e72;">Your meeting is saved on this phone until you finish it.</p>
   </div>
@@ -218,13 +206,6 @@
     <div class="card">
       <h2>Timer's Report</h2>
       <div id="reportPreview" style="font-size:13px;white-space:pre-wrap;line-height:1.5;background:#faf4e8;border-radius:8px;padding:12px;border:1px solid #e5d9bf;"></div>
-    </div>
-    <div class="card">
-      <h2>Send To</h2>
-      <label for="sEmail">Email recipient</label>
-      <input type="text" id="sEmail" placeholder="Leave blank to choose in Mail" autocomplete="off">
-      <label for="sWhatsApp">WhatsApp number</label>
-      <input type="text" id="sWhatsApp" placeholder="Leave blank to pick a chat" autocomplete="off">
     </div>
     <div class="share-row">
       <button class="btn btn-green" id="waBtn">WhatsApp</button>
@@ -328,9 +309,7 @@
       date: el('mDate').value,
       title: el('mTitle').value.trim(),
       desc: el('mDesc').value.trim(),
-      timer: el('mTimer').value.trim(),
-      email: el('mEmail').value.trim(),
-      whatsapp: el('mWhatsApp').value.trim()
+      timer: el('mTimer').value.trim()
     };
     save();
     enterTimer();
@@ -361,8 +340,6 @@
     el('mTitle').value = meeting.title;
     el('mDesc').value = meeting.desc;
     el('mTimer').value = meeting.timer;
-    el('mEmail').value = meeting.email || '';
-    el('mWhatsApp').value = meeting.whatsapp || '';
     show('screenSetup');
   };
 
@@ -493,21 +470,22 @@
 
   el('finishBtn').onclick = function(){
     el('reportPreview').textContent = buildReport();
-    el('sEmail').value = meeting.email || '';
-    el('sWhatsApp').value = meeting.whatsapp || '';
     show('screenShare');
   };
   el('backToTimer').onclick = function(){ show('screenTimer'); };
 
   el('waBtn').onclick = function(){
-    var num = el('sWhatsApp').value.replace(/[^0-9]/g,'');
+    var input = prompt('WhatsApp number to send to.\nFull international format, no + or spaces (e.g. 6591234567).\n\nLeave blank to pick a chat in WhatsApp.', '');
+    if(input === null) return; // cancelled
+    var num = input.replace(/[^0-9]/g,'');
     var base = num ? 'https://wa.me/' + num : 'https://wa.me/';
     window.open(base + '?text=' + encodeURIComponent(buildReport()), '_blank');
   };
   el('emailBtn').onclick = function(){
+    var to = prompt('Email address to send to.\n\nLeave blank to choose the recipient in your mail app.', '');
+    if(to === null) return; // cancelled
     var subject = "Timer's Report \u2014 " + meeting.club + (meeting.title ? ' (' + meeting.title + ')' : '');
-    var to = el('sEmail').value.trim();
-    window.location.href = 'mailto:' + encodeURIComponent(to)
+    window.location.href = 'mailto:' + encodeURIComponent(to.trim())
       + '?subject=' + encodeURIComponent(subject)
       + '&body=' + encodeURIComponent(buildReport());
   };
@@ -525,7 +503,6 @@
     clearSaved();
     meeting = null; log = []; reset();
     el('mClub').value=''; el('mTitle').value=''; el('mDesc').value=''; el('mTimer').value='';
-    el('mEmail').value=''; el('mWhatsApp').value='';
     el('mDate').value = defaultDate();
     el('crestText').textContent = 'Toastmasters';
     show('screenSetup');
