@@ -27,19 +27,22 @@
     font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
     background:radial-gradient(ellipse at top,#faf4e8 0%,var(--paper) 55%,#e8ddc8 100%);
     color:var(--ink); min-height:100%; display:flex; justify-content:center;
-    padding:18px 16px 40px;
+    padding:12px 16px 36px;
   }
   .wrap { width:100%; max-width:460px; }
 
-  header { text-align:center; margin-bottom:14px; }
-  header .crest { font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--maroon); font-weight:700; }
-  header h1 { font-size:25px; letter-spacing:0.5px; margin-top:2px; font-weight:700; }
-  header .rule { width:54px; height:2px; background:var(--gold); margin:8px auto 0; }
+  header { text-align:center; margin-bottom:10px; }
+  header .crest { font-size:10px; letter-spacing:2.5px; text-transform:uppercase; color:var(--maroon); font-weight:700; }
+  header h1 { font-size:21px; letter-spacing:0.5px; margin-top:1px; font-weight:700; }
+  header .rule { width:46px; height:2px; background:var(--gold); margin:6px auto 0; }
+  /* Compact header once inside the timer/share screens */
+  body.in-app header h1 { font-size:16px; }
+  body.in-app header .rule { margin-top:4px; width:36px; }
 
   .card {
     background:#fffdf7; border:1px solid rgba(122,31,43,0.15);
     border-radius:14px; box-shadow:0 8px 24px var(--shadow);
-    padding:18px 16px; margin-bottom:16px;
+    padding:14px 14px; margin-bottom:12px;
   }
   .card h2 { font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--maroon); margin-bottom:12px; font-weight:700; }
   label { display:block; font-size:13px; margin-bottom:5px; font-weight:600; }
@@ -95,7 +98,7 @@
 
   .meeting-banner {
     background:var(--maroon); color:#f4ede0; border-radius:12px;
-    padding:12px 14px; margin-bottom:16px; text-align:center;
+    padding:9px 14px; margin-bottom:12px; text-align:center;
   }
   .meeting-banner .mb-club { font-size:15px; font-weight:700; }
   .meeting-banner .mb-sub { font-size:12px; opacity:0.85; margin-top:2px; }
@@ -163,13 +166,10 @@
     <div class="card">
       <h2>Set the Speech</h2>
       <label for="speakerName">Speaker / Role</label>
-      <input type="text" id="speakerName" placeholder="e.g. speaker name" autocomplete="off">
+      <input type="text" id="speakerName" placeholder="e.g. speaker name or role" autocomplete="off">
 
       <label>Speech Type</label>
       <div class="presets" id="presets"></div>
-
-      <label for="speakerNotes">Notes (optional)</label>
-      <textarea id="speakerNotes" placeholder="Project number, evaluation pairing, remarks..."></textarea>
 
       <label>Signal Times (mm:ss)</label>
       <div class="signal-row">
@@ -292,6 +292,7 @@
     el('screenTimer').classList.add('hidden');
     el('screenShare').classList.add('hidden');
     el(screen).classList.remove('hidden');
+    document.body.classList.toggle('in-app', screen !== 'screenSetup');
     window.scrollTo(0,0);
   }
 
@@ -410,14 +411,12 @@
     log.push({
       name: speakerLabel(),
       type: currentType(),
-      notes: el('speakerNotes').value.trim(),
       seconds: Math.floor(elapsed),
       qual: qualify(elapsed, sig)
     });
     save();
     renderLog();
     el('speakerName').value = '';
-    el('speakerNotes').value = '';
     reset();
     el('speakerName').focus();
   }
@@ -430,9 +429,8 @@
     }
     var html = '<table><thead><tr><th>#</th><th>Speaker</th><th>Time</th><th>Result</th><th></th></tr></thead><tbody>';
     log.forEach(function(r,i){
-      var meta = r.type + (r.notes ? ' \u00b7 ' + escapeHtml(r.notes) : '');
       html += '<tr><td>'+(i+1)+'</td>'
-        + '<td>'+escapeHtml(r.name)+'<div class="meta">'+escapeHtml(meta)+'</div></td>'
+        + '<td>'+escapeHtml(r.name)+'<div class="meta">'+escapeHtml(r.type)+'</div></td>'
         + '<td class="time">'+fmt(r.seconds)+'</td>'
         + '<td><span class="qual '+r.qual.cls+'">'+r.qual.txt+'</span></td>'
         + '<td><button class="del" data-i="'+i+'">&times;</button></td></tr>';
@@ -460,7 +458,7 @@
     } else {
       log.forEach(function(r,i){
         L.push((i+1)+'. '+r.name+' \u2014 '+fmt(r.seconds)+'  ['+r.qual.txt+']');
-        L.push('   '+r.type + (r.notes ? ' \u2014 '+r.notes : ''));
+        L.push('   '+r.type);
       });
     }
     L.push('');
