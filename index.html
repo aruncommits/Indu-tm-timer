@@ -56,6 +56,7 @@
   input[type=date] { min-width:0; -webkit-appearance:none; appearance:none; }
   textarea { resize:vertical; min-height:54px; }
   .opt { font-weight:400; color:#6b7a80; font-size:11px; }
+  .sig-heading { font-size:12px; font-weight:600; margin-bottom:8px; }
   input:focus, textarea:focus, select:focus { outline:2px solid var(--blue); outline-offset:1px; }
 
 
@@ -182,10 +183,11 @@
     </div>
 
     <div class="signal-card">
+      <div class="sig-heading">Signal Times <span class="opt">(in minutes)</span></div>
       <div class="signal-row">
-        <div><div class="sig-label"><span class="dot g"></span>Green</div><input type="text" id="tGreen" value="05:00" placeholder="MM:SS" inputmode="numeric"></div>
-        <div><div class="sig-label"><span class="dot a"></span>Amber</div><input type="text" id="tAmber" value="06:00" placeholder="MM:SS" inputmode="numeric"></div>
-        <div><div class="sig-label"><span class="dot r"></span>Red</div><input type="text" id="tRed" value="07:00" placeholder="MM:SS" inputmode="numeric"></div>
+        <div><div class="sig-label"><span class="dot g"></span>Green</div><input type="text" id="tGreen" value="5" placeholder="min" inputmode="numeric"></div>
+        <div><div class="sig-label"><span class="dot a"></span>Amber</div><input type="text" id="tAmber" value="6" placeholder="min" inputmode="numeric"></div>
+        <div><div class="sig-label"><span class="dot r"></span>Red</div><input type="text" id="tRed" value="7" placeholder="min" inputmode="numeric"></div>
       </div>
     </div>
 
@@ -262,10 +264,14 @@
     return (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
   }
   function parse(str){
-    var p = String(str).trim().split(':');
-    if(p.length===2){ return (parseInt(p[0],10)||0)*60 + (parseInt(p[1],10)||0); }
-    // a bare number means minutes (e.g. "10" = 10 min)
-    return (parseInt(str,10)||0) * 60;
+    str = String(str).trim();
+    // legacy mm:ss still understood, but inputs are now plain minutes
+    if(str.indexOf(':') > -1){
+      var p = str.split(':');
+      return (parseInt(p[0],10)||0)*60 + (parseInt(p[1],10)||0);
+    }
+    // plain minutes, decimals allowed (e.g. "1.5" = 90s); seconds default to 0
+    return Math.round((parseFloat(str)||0) * 60);
   }
   function getSignals(){
     return { g:parse(el('tGreen').value), a:parse(el('tAmber').value), r:parse(el('tRed').value) };
@@ -303,9 +309,9 @@
     activePreset = parseInt(sel.value,10);
     var p = PRESETS[activePreset];
     if(p.g!==null){
-      el('tGreen').value = fmt(p.g);
-      el('tAmber').value = fmt(p.a);
-      el('tRed').value = fmt(p.r);
+      el('tGreen').value = p.g/60;
+      el('tAmber').value = p.a/60;
+      el('tRed').value = p.r/60;
     } else {
       // Custom: clear the fields so the user keys them in
       el('tGreen').value = '';
