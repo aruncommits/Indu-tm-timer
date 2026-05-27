@@ -183,9 +183,9 @@
 
     <div class="signal-card">
       <div class="signal-row">
-        <div><div class="sig-label"><span class="dot g"></span>Green</div><input type="text" id="tGreen" value="05:00"></div>
-        <div><div class="sig-label"><span class="dot a"></span>Amber</div><input type="text" id="tAmber" value="06:00"></div>
-        <div><div class="sig-label"><span class="dot r"></span>Red</div><input type="text" id="tRed" value="07:00"></div>
+        <div><div class="sig-label"><span class="dot g"></span>Green</div><input type="text" id="tGreen" value="05:00" placeholder="MM:SS" inputmode="numeric"></div>
+        <div><div class="sig-label"><span class="dot a"></span>Amber</div><input type="text" id="tAmber" value="06:00" placeholder="MM:SS" inputmode="numeric"></div>
+        <div><div class="sig-label"><span class="dot r"></span>Red</div><input type="text" id="tRed" value="07:00" placeholder="MM:SS" inputmode="numeric"></div>
       </div>
     </div>
 
@@ -262,9 +262,10 @@
     return (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
   }
   function parse(str){
-    var p = String(str).split(':');
+    var p = String(str).trim().split(':');
     if(p.length===2){ return (parseInt(p[0],10)||0)*60 + (parseInt(p[1],10)||0); }
-    return parseInt(str,10)||0;
+    // a bare number means minutes (e.g. "10" = 10 min)
+    return (parseInt(str,10)||0) * 60;
   }
   function getSignals(){
     return { g:parse(el('tGreen').value), a:parse(el('tAmber').value), r:parse(el('tRed').value) };
@@ -354,7 +355,8 @@
       date: el('mDate').value,
       title: el('mTitle').value.trim(),
       desc: el('mDesc').value.trim(),
-      timer: el('mTimer').value.trim()
+      timer: el('mTimer').value.trim(),
+      started: meeting && meeting.started ? meeting.started : new Date().toISOString()
     };
     save();
     enterTimer();
@@ -412,9 +414,11 @@
   }
   el('speakerName').addEventListener('input', refreshSpeakerOnStage);
 
+  var speechStartTS = null; // ISO time the current speech first started
   function start(){
     if(running) return;
     running = true;
+    if(elapsed === 0 || !speechStartTS){ speechStartTS = new Date().toISOString(); }
     el('stageSpeaker').textContent = speakerLabel();
     el('startBtn').disabled = true;
     el('pauseBtn').disabled = false;
@@ -436,6 +440,7 @@
   }
   function reset(){
     running = false; clearInterval(ticking); elapsed = 0;
+    speechStartTS = null;
     el('startBtn').disabled = !signalsComplete();
     el('startBtn').textContent = 'Start';
     el('pauseBtn').disabled = true;
@@ -445,10 +450,11 @@
     refreshSpeakerOnStage();
   }
   function qualify(sec, sig){
-    if(sec > sig.r + 30) return { cls:'dq', txt:'Disqualified (over)' };
-    if(sec >= sig.r) return { cls:'red', txt:'At/over max' };
-    if(sec >= sig.g) return { cls:'green', txt:'Qualifying' };
-    return { cls:'dq', txt:'Disqualified (under)' };
+    if(sec > sig.r + 30) return { cls:'dq',    txt:'Disqualified (over)',  colour:'Red (Overtime)' };
+    if(sec >= sig.r)     return { cls:'red',   txt:'At/over max',          colour:'Red' };
+    if(sec >= sig.a)     return { cls:'amber', txt:'In amber',             colour:'Yellow' };
+    if(sec >= sig.g)     return { cls:'green', txt:'Qualifying',           colour:'Green' };
+    return { cls:'dq', txt:'Disqualified (under)', colour:'White (Under-time)' };
   }
 
   function logSpeaker(){
@@ -457,7 +463,9 @@
       name: speakerLabel(),
       type: currentType(),
       seconds: Math.floor(elapsed),
-      qual: qualify(elapsed, sig)
+      qual: qualify(elapsed, sig),
+      startTS: speechStartTS,
+      endTS: new Date().toISOString()
     });
     save();
     renderLog();
@@ -490,24 +498,35 @@
     });
   }
 
+  // format an ISO timestamp as "YYYY-MM-DD HH:MM:SS" in local time
+  function clockTS(iso){
+    if(!iso) return '\u2014';
+    var d = new Date(iso);
+    if(isNaN(d)) return '\u2014';
+    function p(n){ return (n<10?'0':'')+n; }
+    return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())
+      +' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());
+  }
+
   function buildReport(){
     var L = [];
     L.push("TIMER'S REPORT");
-    L.push(meeting.club);
-    if(meeting.title) L.push(meeting.title);
+    L.push(meeting.club + (meeting.title ? ' \u2014 ' + meeting.title : ''));
     if(meeting.date) L.push(prettyDate(meeting.date));
     if(meeting.desc) L.push(meeting.desc);
     L.push('');
+
     if(log.length===0){
       L.push('(No speakers logged.)');
     } else {
       log.forEach(function(r,i){
-        L.push((i+1)+'. '+r.name+'  \u2014  '+r.type);
-        L.push('    '+fmt(r.seconds)+'   ['+r.qual.txt+']');
+        L.push((i+1)+'. ' + r.name + '  \u2014  ' + r.type);
+        L.push('   ' + fmt(r.seconds) + '   ' + (r.qual.colour || r.qual.txt));
+        L.push('   Start: ' + clockTS(r.startTS) + '   End: ' + clockTS(r.endTS));
       });
     }
     L.push('');
-    if(meeting.timer) L.push('Timer: '+meeting.timer);
+    if(meeting.timer) L.push('Timer: ' + meeting.timer);
     return L.join('\n');
   }
 
