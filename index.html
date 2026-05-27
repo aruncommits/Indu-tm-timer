@@ -183,11 +183,11 @@
     </div>
 
     <div class="signal-card">
-      <div class="sig-heading">Signal Times <span class="opt">(in minutes)</span></div>
+      <div class="sig-heading">Signal Times <span class="opt">(mm:ss \u2014 auto-formats)</span></div>
       <div class="signal-row">
-        <div><div class="sig-label"><span class="dot g"></span>Green</div><input type="text" id="tGreen" value="5" placeholder="min" inputmode="numeric"></div>
-        <div><div class="sig-label"><span class="dot a"></span>Amber</div><input type="text" id="tAmber" value="6" placeholder="min" inputmode="numeric"></div>
-        <div><div class="sig-label"><span class="dot r"></span>Red</div><input type="text" id="tRed" value="7" placeholder="min" inputmode="numeric"></div>
+        <div><div class="sig-label"><span class="dot g"></span>Green</div><input type="text" id="tGreen" value="05:00" placeholder="00:00" inputmode="numeric"></div>
+        <div><div class="sig-label"><span class="dot a"></span>Amber</div><input type="text" id="tAmber" value="06:00" placeholder="00:00" inputmode="numeric"></div>
+        <div><div class="sig-label"><span class="dot r"></span>Red</div><input type="text" id="tRed" value="07:00" placeholder="00:00" inputmode="numeric"></div>
       </div>
     </div>
 
@@ -265,12 +265,15 @@
   }
   function parse(str){
     str = String(str).trim();
-    // legacy mm:ss still understood, but inputs are now plain minutes
     if(str.indexOf(':') > -1){
       var p = str.split(':');
-      return (parseInt(p[0],10)||0)*60 + (parseInt(p[1],10)||0);
+      var mm = parseInt(p[0],10) || 0;
+      var secStr = (p[1] || '').replace(/[^0-9]/g,'');
+      var ss = secStr.length === 1 ? parseInt(secStr,10)*10 : (parseInt(secStr,10) || 0);
+      if(ss > 59) ss = 59;
+      return mm*60 + ss;
     }
-    // plain minutes, decimals allowed (e.g. "1.5" = 90s); seconds default to 0
+    // plain number = minutes, decimals allowed (e.g. "1.5" = 90s)
     return Math.round((parseFloat(str)||0) * 60);
   }
   function getSignals(){
@@ -309,9 +312,9 @@
     activePreset = parseInt(sel.value,10);
     var p = PRESETS[activePreset];
     if(p.g!==null){
-      el('tGreen').value = p.g/60;
-      el('tAmber').value = p.a/60;
-      el('tRed').value = p.r/60;
+      el('tGreen').value = fmt(p.g);
+      el('tAmber').value = fmt(p.a);
+      el('tRed').value = fmt(p.r);
     } else {
       // Custom: clear the fields so the user keys them in
       el('tGreen').value = '';
@@ -334,8 +337,43 @@
       el('startBtn').disabled = !signalsComplete();
     }
   }
+  // Normalise free-typed input to MM:SS.
+  //  "3"   -> "03:00"   (bare number = minutes)
+  //  "10"  -> "10:00"
+  //  "2:3" -> "02:30"   (single digit after colon = tens of seconds)
+  //  "2:30"-> "02:30"
+  //  "2:05"-> "02:05"   (two digits = literal seconds)
+  function formatTimeField(raw){
+    raw = String(raw).trim();
+    if(raw === '') return '';
+    var mm, ss;
+    if(raw.indexOf(':') > -1){
+      var p = raw.split(':');
+      mm = parseInt(p[0],10) || 0;
+      var secStr = (p[1] || '').replace(/[^0-9]/g,'');
+      if(secStr.length === 1){
+        ss = parseInt(secStr,10) * 10;   // "3" -> 30
+      } else {
+        ss = parseInt(secStr,10) || 0;   // "05" -> 5, "30" -> 30
+      }
+    } else {
+      mm = parseInt(raw,10) || 0;
+      ss = 0;
+    }
+    if(ss > 59) ss = 59;
+    function pad(n){ return (n<10?'0':'') + n; }
+    return pad(mm) + ':' + pad(ss);
+  }
+
   ['tGreen','tAmber','tRed'].forEach(function(id){
-    el(id).addEventListener('input', function(){ refreshStartState(); updateStage(); });
+    var node = el(id);
+    node.addEventListener('input', function(){ refreshStartState(); updateStage(); });
+    // tidy to MM:SS when the user leaves the field
+    node.addEventListener('blur', function(){
+      node.value = formatTimeField(node.value);
+      refreshStartState();
+      updateStage();
+    });
   });
 
   function show(screen){
