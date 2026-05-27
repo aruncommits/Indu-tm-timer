@@ -55,9 +55,9 @@
 
   /* compact setup bar */
   .setup-bar { display:flex; gap:8px; margin-bottom:12px; }
-  .setup-bar input { flex:2; margin-bottom:0; }
+  .setup-bar input { flex:1; margin-bottom:0; min-width:0; }
   .setup-bar select {
-    flex:1; min-width:120px; font-family:inherit; font-size:14px;
+    flex:1; min-width:0; font-family:inherit; font-size:14px;
     padding:10px 8px; border:1px solid #cbb98f; border-radius:8px;
     background:#fff; color:var(--ink);
   }
@@ -74,36 +74,21 @@
   .dot { width:11px; height:11px; border-radius:50%; display:inline-block; }
   .dot.g { background:var(--green); } .dot.a { background:var(--amber); } .dot.r { background:var(--red); }
 
-  /* circular ring timer */
-  .ring-wrap {
-    position:relative; width:100%; max-width:300px; aspect-ratio:1;
-    margin:4px auto 16px;
+  /* rectangular colour-changing timer */
+  .stage {
+    border-radius:16px; padding:24px 18px 20px; text-align:center;
+    transition:background 0.4s ease, box-shadow 0.4s ease, color 0.4s ease;
+    background:#2b2620; color:#f4ede0;
+    box-shadow:0 10px 30px var(--shadow); margin:4px 0 16px;
   }
-  .ring { width:100%; height:100%; transform:rotate(-90deg); }
-  .ring-track { fill:none; stroke:#e5d9bf; stroke-width:16; }
-  .ring-fill {
-    fill:none; stroke:#8a7c63; stroke-width:16; stroke-linecap:round;
-    stroke-dasharray:666; stroke-dashoffset:666;
-    transition:stroke-dashoffset 0.3s linear, stroke 0.4s ease;
-  }
-  .ring-center {
-    position:absolute; inset:0; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; text-align:center;
-  }
-  .speaker-now { font-size:13px; letter-spacing:1px; color:#8a7c63; min-height:16px; padding:0 30px; }
-  .clock { font-size:60px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; margin:4px 0; letter-spacing:1px; color:var(--ink); }
-  .sig-status { font-size:11px; letter-spacing:2px; text-transform:uppercase; min-height:16px; color:#8a7c63; }
-  /* zone colours drive ring + status text */
-  .ring-wrap.green .ring-fill { stroke:var(--green); }
-  .ring-wrap.green .sig-status { color:var(--green); }
-  .ring-wrap.amber .ring-fill { stroke:var(--amber); }
-  .ring-wrap.amber .sig-status { color:#9c6f0e; }
-  .ring-wrap.red .ring-fill,
-  .ring-wrap.over .ring-fill { stroke:var(--red); }
-  .ring-wrap.red .sig-status,
-  .ring-wrap.over .sig-status { color:var(--red); }
-  .ring-wrap.over .ring-fill { animation:ringpulse 1s infinite; }
-  @keyframes ringpulse { 50% { opacity:0.35; } }
+  .stage.green { background:var(--green); color:#fff; box-shadow:0 0 34px rgba(46,125,79,0.55); }
+  .stage.amber { background:var(--amber); color:#2b2620; box-shadow:0 0 34px rgba(217,154,31,0.55); }
+  .stage.red   { background:var(--red); color:#fff; box-shadow:0 0 36px rgba(192,57,43,0.6); }
+  .stage.over  { background:var(--red); color:#fff; animation:pulse 1s infinite; }
+  @keyframes pulse { 50% { box-shadow:0 0 12px rgba(192,57,43,0.3); } }
+  .speaker-now { font-size:13px; letter-spacing:1px; opacity:0.85; min-height:16px; }
+  .clock { font-size:72px; font-weight:700; line-height:1; font-variant-numeric:tabular-nums; margin:6px 0 4px; letter-spacing:1px; }
+  .sig-status { font-size:12px; letter-spacing:2px; text-transform:uppercase; min-height:16px; }
 
   .controls { display:flex; gap:10px; margin-bottom:10px; }
   .btn {
@@ -186,7 +171,7 @@
     </div>
 
     <div class="setup-bar">
-      <input type="text" id="speakerName" placeholder="Speaker / role name" autocomplete="off">
+      <input type="text" id="speakerName" placeholder="Name" autocomplete="off">
       <select id="speechType"></select>
     </div>
 
@@ -198,16 +183,10 @@
       </div>
     </div>
 
-    <div class="ring-wrap" id="stage">
-      <svg class="ring" viewBox="0 0 240 240">
-        <circle class="ring-track" cx="120" cy="120" r="106"/>
-        <circle class="ring-fill" id="ringFill" cx="120" cy="120" r="106"/>
-      </svg>
-      <div class="ring-center">
-        <div class="speaker-now" id="stageSpeaker">No speaker set</div>
-        <div class="clock" id="clock">00:00</div>
-        <div class="sig-status" id="sigStatus">Ready</div>
-      </div>
+    <div class="stage" id="stage">
+      <div class="speaker-now" id="stageSpeaker">No speaker set</div>
+      <div class="clock" id="clock">00:00</div>
+      <div class="sig-status" id="sigStatus">Ready</div>
     </div>
 
     <div class="controls">
@@ -373,17 +352,10 @@
     show('screenSetup');
   };
 
-  var RING_CIRC = 666; // 2 * pi * 106
   function updateStage(){
     el('clock').textContent = fmt(elapsed);
     var sig = getSignals(), stage = el('stage'), status = el('sigStatus');
-    stage.className = 'ring-wrap';
-
-    // ring fills proportionally; full at Red, then stays full
-    var span = sig.r > 0 ? sig.r : 1;
-    var frac = Math.min(1, elapsed / span);
-    el('ringFill').style.strokeDashoffset = RING_CIRC * (1 - frac);
-
+    stage.className = 'stage';
     if(elapsed >= sig.r){
       if(elapsed > sig.r + 30){ stage.classList.add('over'); status.textContent = 'Over time'; }
       else { stage.classList.add('red'); status.textContent = 'Red \u2014 wrap up'; }
@@ -493,8 +465,8 @@
       L.push('(No speakers logged.)');
     } else {
       log.forEach(function(r,i){
-        L.push((i+1)+'. '+r.name+' \u2014 '+fmt(r.seconds)+'  ['+r.qual.txt+']');
-        L.push('   '+r.type);
+        L.push((i+1)+'. '+r.name+'  \u2014  '+r.type);
+        L.push('    '+fmt(r.seconds)+'   ['+r.qual.txt+']');
       });
     }
     L.push('');
