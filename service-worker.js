@@ -1,5 +1,5 @@
 // Toastmasters Timer — service worker (offline support)
-const CACHE = 'tm-timer-v7';
+const CACHE = 'tm-timer-v8';
 const ASSETS = [
   './',
   './index.html',

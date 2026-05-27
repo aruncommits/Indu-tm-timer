@@ -5,27 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Toastmasters Meeting Timer</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#7a1f2b">
+<meta name="theme-color" content="#004165">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TM Timer">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root {
-    --ink: #1a1410;
-    --paper: #f4ede0;
-    --maroon: #7a1f2b;
-    --gold: #c8962a;
-    --green: #2e7d4f;
-    --amber: #d99a1f;
-    --red: #c0392b;
-    --shadow: rgba(26,20,16,0.18);
+    /* Official Toastmasters International brand palette */
+    --ink: #18242b;          /* near-Loyal-blue ink */
+    --paper: #eef1f2;        /* light cool gray ground */
+    --maroon: #772432;       /* True Maroon */
+    --blue: #004165;         /* Loyal Blue */
+    --gold: #f2df74;         /* Happy Yellow */
+    --gray: #a9b2b1;         /* Cool Gray */
+    --green: #2e7d4f;        /* functional signal */
+    --amber: #d99a1f;        /* functional signal */
+    --red: #c0392b;          /* functional signal */
+    --shadow: rgba(0,65,101,0.18);
   }
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html, body { height:100%; }
   body {
     font-family:'Iowan Old Style','Palatino Linotype',Palatino,Georgia,serif;
-    background:radial-gradient(ellipse at top,#faf4e8 0%,var(--paper) 55%,#e8ddc8 100%);
+    background:radial-gradient(ellipse at top,#f7f9f9 0%,var(--paper) 55%,#dde3e3 100%);
     color:var(--ink); min-height:100%; display:flex; justify-content:center;
     padding:12px 16px 36px;
   }
@@ -34,12 +37,12 @@
   header { text-align:center; margin-bottom:10px; }
   header .crest { font-size:10px; letter-spacing:2.5px; text-transform:uppercase; color:var(--maroon); font-weight:700; }
   header h1 { font-size:21px; letter-spacing:0.5px; margin-top:1px; font-weight:700; }
-  header .rule { width:46px; height:2px; background:var(--gold); margin:6px auto 0; }
+  header .rule { width:46px; height:2px; background:var(--blue); margin:6px auto 0; }
   /* Hide the top header once inside timer/share — banner carries the info */
   body.in-app header { display:none; }
 
   .card {
-    background:#fffdf7; border:1px solid rgba(122,31,43,0.15);
+    background:#ffffff; border:1px solid rgba(0,65,101,0.15);
     border-radius:14px; box-shadow:0 8px 24px var(--shadow);
     padding:14px 14px; margin-bottom:12px;
   }
@@ -47,7 +50,7 @@
   label { display:block; font-size:13px; margin-bottom:5px; font-weight:600; }
   input[type=text], textarea, input[type=date] {
     width:100%; font-family:inherit; font-size:16px; padding:10px 12px;
-    border:1px solid #cbb98f; border-radius:8px; background:#fff; color:var(--ink); margin-bottom:12px;
+    border:1px solid var(--gray); border-radius:8px; background:#fff; color:var(--ink); margin-bottom:12px;
   }
   textarea { resize:vertical; min-height:54px; }
   input:focus, textarea:focus { outline:2px solid var(--gold); outline-offset:1px; }
@@ -58,11 +61,11 @@
   .setup-bar input { flex:1; margin-bottom:0; min-width:0; }
   .setup-bar select {
     flex:1; min-width:0; font-family:inherit; font-size:14px;
-    padding:10px 8px; border:1px solid #cbb98f; border-radius:8px;
+    padding:10px 8px; border:1px solid var(--gray); border-radius:8px;
     background:#fff; color:var(--ink);
   }
   .signal-card {
-    background:#fffdf7; border:1px solid rgba(122,31,43,0.15);
+    background:#ffffff; border:1px solid rgba(0,65,101,0.15);
     border-radius:14px; box-shadow:0 8px 24px var(--shadow);
     padding:12px 14px; margin-bottom:14px;
   }
@@ -78,11 +81,11 @@
   .stage {
     border-radius:16px; padding:24px 18px 20px; text-align:center;
     transition:background 0.4s ease, box-shadow 0.4s ease, color 0.4s ease;
-    background:#2b2620; color:#f4ede0;
+    background:var(--blue); color:#ffffff;
     box-shadow:0 10px 30px var(--shadow); margin:4px 0 16px;
   }
   .stage.green { background:var(--green); color:#fff; box-shadow:0 0 34px rgba(46,125,79,0.55); }
-  .stage.amber { background:var(--amber); color:#2b2620; box-shadow:0 0 34px rgba(217,154,31,0.55); }
+  .stage.amber { background:var(--amber); color:#18242b; box-shadow:0 0 34px rgba(217,154,31,0.55); }
   .stage.red   { background:var(--red); color:#fff; box-shadow:0 0 36px rgba(192,57,43,0.6); }
   .stage.over  { background:var(--red); color:#fff; animation:pulse 1s infinite; }
   @keyframes pulse { 50% { box-shadow:0 0 12px rgba(192,57,43,0.3); } }
@@ -97,8 +100,8 @@
   }
   .btn-primary { background:var(--maroon); color:#fff; }
   .btn-primary:active { transform:scale(0.98); }
-  .btn-gold { background:var(--gold); color:#2b2620; }
-  .btn-ghost { background:#fff; border-color:#cbb98f; color:var(--ink); }
+  .btn-gold { background:var(--gold); color:#18242b; }
+  .btn-ghost { background:#fff; border-color:var(--gray); color:var(--ink); }
   .btn-green { background:var(--green); color:#fff; }
   .btn:disabled { opacity:0.4; cursor:not-allowed; }
   .btn-wide { width:100%; margin-bottom:10px; }
@@ -110,19 +113,19 @@
   .meeting-banner .mb-club { font-size:15px; font-weight:700; }
   .meeting-banner .mb-sub { font-size:12px; opacity:0.85; margin-top:2px; }
 
-  .log-empty { font-size:13px; color:#8a7c63; text-align:center; padding:8px 0; font-style:italic; }
+  .log-empty { font-size:13px; color:#6b7a80; text-align:center; padding:8px 0; font-style:italic; }
   table { width:100%; border-collapse:collapse; font-size:14px; }
-  th { text-align:left; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--maroon); border-bottom:1.5px solid var(--gold); padding:6px 4px; }
-  td { padding:8px 4px; border-bottom:1px solid #e5d9bf; vertical-align:top; }
+  th { text-align:left; font-size:10px; letter-spacing:1px; text-transform:uppercase; color:var(--maroon); border-bottom:1.5px solid var(--blue); padding:6px 4px; }
+  td { padding:8px 4px; border-bottom:1px solid #d4dada; vertical-align:top; }
   td.time { font-variant-numeric:tabular-nums; font-weight:700; }
-  td .meta { font-size:11px; color:#8a7c63; }
+  td .meta { font-size:11px; color:#6b7a80; }
   .qual { font-size:11px; padding:2px 7px; border-radius:10px; font-weight:700; white-space:nowrap; }
   .qual.green { background:rgba(46,125,79,0.15); color:var(--green); }
   .qual.amber { background:rgba(217,154,31,0.2); color:#9c6f0e; }
   .qual.red { background:rgba(192,57,43,0.15); color:var(--red); }
   .qual.dq { background:rgba(120,120,120,0.15); color:#555; }
   .del { background:none; border:none; cursor:pointer; font-size:16px; color:#a94; }
-  .credit { text-align:center; font-size:11px; color:#9c8e72; margin-top:18px; }
+  .credit { text-align:center; font-size:11px; color:#6b7a80; margin-top:18px; }
   .hidden { display:none; }
   .back-link { font-size:12px; color:var(--maroon); text-decoration:underline; cursor:pointer; display:inline-block; margin-bottom:10px; }
   .share-row { display:flex; gap:10px; }
@@ -158,7 +161,7 @@
       <input type="text" id="mTimer" placeholder="Who is timing today?" autocomplete="off">
     </div>
     <button class="btn btn-primary btn-wide" id="beginBtn">Begin Meeting &rarr;</button>
-    <p style="text-align:center;font-size:12px;color:#9c8e72;">Your meeting is saved on this phone until you finish it.</p>
+    <p style="text-align:center;font-size:12px;color:#6b7a80;">Your meeting is saved on this phone until you finish it.</p>
   </div>
 
   <!-- ============ SCREEN 2: TIMER ============ -->
@@ -209,7 +212,7 @@
     <span class="back-link" id="backToTimer">&larr; Back to timer</span>
     <div class="card">
       <h2>Timer's Report</h2>
-      <div id="reportPreview" style="font-size:13px;white-space:pre-wrap;line-height:1.5;background:#faf4e8;border-radius:8px;padding:12px;border:1px solid #e5d9bf;"></div>
+      <div id="reportPreview" style="font-size:13px;white-space:pre-wrap;line-height:1.5;background:#f0f3f3;border-radius:8px;padding:12px;border:1px solid #d4dada;"></div>
     </div>
     <div class="share-row">
       <button class="btn btn-green" id="waBtn">WhatsApp</button>
@@ -408,10 +411,10 @@
     refreshSpeakerOnStage();
   }
   function qualify(sec, sig){
-    if(sec > sig.r + 30) return { cls:'dq', txt:'Disqualified' };
+    if(sec > sig.r + 30) return { cls:'dq', txt:'Disqualified (over)' };
     if(sec >= sig.r) return { cls:'red', txt:'At/over max' };
     if(sec >= sig.g) return { cls:'green', txt:'Qualifying' };
-    return { cls:'amber', txt:'Under min' };
+    return { cls:'dq', txt:'Disqualified (under)' };
   }
 
   function logSpeaker(){
