@@ -183,7 +183,7 @@
     </div>
 
     <div class="signal-card">
-      <div class="sig-heading">Signal Times <span class="opt">(mm:ss \u2014 auto-formats)</span></div>
+      <div class="sig-heading">Signal Times <span class="opt">(mm:ss)</span></div>
       <div class="signal-row">
         <div><div class="sig-label"><span class="dot g"></span>Green</div><input type="text" id="tGreen" value="05:00" placeholder="00:00" inputmode="numeric"></div>
         <div><div class="sig-label"><span class="dot a"></span>Amber</div><input type="text" id="tAmber" value="06:00" placeholder="00:00" inputmode="numeric"></div>
@@ -265,15 +265,11 @@
   }
   function parse(str){
     str = String(str).trim();
-    if(str.indexOf(':') > -1){
-      var p = str.split(':');
-      var mm = parseInt(p[0],10) || 0;
-      var secStr = (p[1] || '').replace(/[^0-9]/g,'');
-      var ss = secStr.length === 1 ? parseInt(secStr,10)*10 : (parseInt(secStr,10) || 0);
-      if(ss > 59) ss = 59;
-      return mm*60 + ss;
+    var p = str.split(':');
+    if(p.length === 2){
+      return (parseInt(p[0],10)||0)*60 + (parseInt(p[1],10)||0);
     }
-    // plain number = minutes, decimals allowed (e.g. "1.5" = 90s)
+    // fallback: bare number treated as minutes
     return Math.round((parseFloat(str)||0) * 60);
   }
   function getSignals(){
@@ -312,14 +308,14 @@
     activePreset = parseInt(sel.value,10);
     var p = PRESETS[activePreset];
     if(p.g!==null){
-      el('tGreen').value = fmt(p.g);
-      el('tAmber').value = fmt(p.a);
-      el('tRed').value = fmt(p.r);
+      setTimeField('tGreen', fmt(p.g));
+      setTimeField('tAmber', fmt(p.a));
+      setTimeField('tRed', fmt(p.r));
     } else {
       // Custom: clear the fields so the user keys them in
-      el('tGreen').value = '';
-      el('tAmber').value = '';
-      el('tRed').value = '';
+      setTimeField('tGreen', '');
+      setTimeField('tAmber', '');
+      setTimeField('tRed', '');
     }
     refreshStartState();
     updateStage();
@@ -337,43 +333,57 @@
       el('startBtn').disabled = !signalsComplete();
     }
   }
-  // Normalise free-typed input to MM:SS.
-  //  "3"   -> "03:00"   (bare number = minutes)
-  //  "10"  -> "10:00"
-  //  "2:3" -> "02:30"   (single digit after colon = tens of seconds)
-  //  "2:30"-> "02:30"
-  //  "2:05"-> "02:05"   (two digits = literal seconds)
-  function formatTimeField(raw){
-    raw = String(raw).trim();
-    if(raw === '') return '';
-    var mm, ss;
-    if(raw.indexOf(':') > -1){
-      var p = raw.split(':');
-      mm = parseInt(p[0],10) || 0;
-      var secStr = (p[1] || '').replace(/[^0-9]/g,'');
-      if(secStr.length === 1){
-        ss = parseInt(secStr,10) * 10;   // "3" -> 30
-      } else {
-        ss = parseInt(secStr,10) || 0;   // "05" -> 5, "30" -> 30
-      }
-    } else {
-      mm = parseInt(raw,10) || 0;
-      ss = 0;
-    }
+  // Set a time field's value AND its tracked digits together.
+  function setTimeField(id, val){
+    var node = el(id);
+    node.value = val;
+    node._digits = String(val).replace(/[^0-9]/g,'').slice(-4);
+  }
+
+  // MM:SS field with a permanent colon, filled like a phone alarm clock:
+  // digits enter from the right, the colon never moves, no colon key needed.
+  //  type 5      -> 00:05   (mid-entry)
+  //  type 5,0,0  -> 05:00
+  //  type 7,0,0  -> 07:00
+  //  type 2,3,0  -> 02:30
+  function digitsToMMSS(digits){
+    digits = String(digits).replace(/[^0-9]/g,'').slice(-4);
+    if(digits === '') return '';
+    while(digits.length < 4) digits = '0' + digits;
+    var mm = parseInt(digits.slice(0,2),10);
+    var ss = parseInt(digits.slice(2,4),10);
     if(ss > 59) ss = 59;
-    function pad(n){ return (n<10?'0':'') + n; }
-    return pad(mm) + ':' + pad(ss);
+    function pad(n){ return (n<10?'0':'')+n; }
+    return pad(mm)+':'+pad(ss);
   }
 
   ['tGreen','tAmber','tRed'].forEach(function(id){
     var node = el(id);
-    node.addEventListener('input', function(){ refreshStartState(); updateStage(); });
-    // tidy to MM:SS when the user leaves the field
-    node.addEventListener('blur', function(){
-      node.value = formatTimeField(node.value);
+    node._digits = String(node.value).replace(/[^0-9]/g,'').slice(-4);
+    var prev = node.value;
+    node.addEventListener('input', function(){
+      var raw = node._digits || '';
+      if(node.value.length < prev.length){
+        // a deletion: drop the last tracked digit
+        raw = raw.slice(0,-1);
+      } else {
+        // an insertion: find the new digit(s) added
+        var added = node.value.replace(/[^0-9]/g,'');
+        // the freshly typed digit is whatever extends beyond the formatted prev
+        var prevDigits = prev.replace(/[^0-9]/g,'');
+        var extra = added.length > prevDigits.length
+          ? added.slice(prevDigits.length)
+          : added.slice(-1);
+        raw = (raw + extra).replace(/[^0-9]/g,'').slice(-4);
+      }
+      node._digits = raw;
+      node.value = digitsToMMSS(raw);
+      node.selectionStart = node.selectionEnd = node.value.length;
+      prev = node.value;
       refreshStartState();
       updateStage();
     });
+    node.addEventListener('focus', function(){ prev = node.value; });
   });
 
   function show(screen){
