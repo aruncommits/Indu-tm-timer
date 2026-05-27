@@ -52,8 +52,11 @@
     width:100%; font-family:inherit; font-size:16px; padding:10px 12px;
     border:1px solid var(--gray); border-radius:8px; background:#fff; color:var(--ink); margin-bottom:12px;
   }
+  /* iOS gives date inputs an intrinsic min-width that overflows the card */
+  input[type=date] { min-width:0; -webkit-appearance:none; appearance:none; }
   textarea { resize:vertical; min-height:54px; }
-  input:focus, textarea:focus { outline:2px solid var(--gold); outline-offset:1px; }
+  .opt { font-weight:400; color:#6b7a80; font-size:11px; }
+  input:focus, textarea:focus, select:focus { outline:2px solid var(--blue); outline-offset:1px; }
 
 
   /* compact setup bar */
@@ -214,11 +217,20 @@
       <h2>Timer's Report</h2>
       <div id="reportPreview" style="font-size:13px;white-space:pre-wrap;line-height:1.5;background:#f0f3f3;border-radius:8px;padding:12px;border:1px solid #d4dada;"></div>
     </div>
-    <div class="share-row">
-      <button class="btn btn-green" id="waBtn">WhatsApp</button>
-      <button class="btn btn-primary" id="emailBtn">Email</button>
+
+    <div class="card">
+      <h2>Send the Report</h2>
+
+      <label for="sWhatsApp">WhatsApp number <span class="opt">(optional)</span></label>
+      <input type="text" id="sWhatsApp" inputmode="numeric" placeholder="e.g. 6591234567 — leave blank to pick a chat" autocomplete="off">
+      <button class="btn btn-green btn-wide" id="waBtn">Send via WhatsApp</button>
+
+      <label for="sEmail" style="margin-top:6px;">Email address <span class="opt">(optional)</span></label>
+      <input type="text" id="sEmail" inputmode="email" placeholder="name@example.com — leave blank to choose in Mail" autocomplete="off">
+      <button class="btn btn-primary btn-wide" id="emailBtn">Send via Email</button>
     </div>
-    <button class="btn btn-ghost btn-wide" id="copyBtn" style="margin-top:10px;">Copy Report Text</button>
+
+    <button class="btn btn-ghost btn-wide" id="copyBtn">Copy Report Text</button>
     <button class="btn btn-ghost btn-wide" id="newMeetingBtn">Start a New Meeting</button>
   </div>
 
@@ -293,10 +305,31 @@
       el('tGreen').value = fmt(p.g);
       el('tAmber').value = fmt(p.a);
       el('tRed').value = fmt(p.r);
+    } else {
+      // Custom: clear the fields so the user keys them in
+      el('tGreen').value = '';
+      el('tAmber').value = '';
+      el('tRed').value = '';
     }
+    refreshStartState();
     updateStage();
   };
   function currentType(){ return PRESETS[activePreset].name; }
+
+  // Start is disabled until all three signal times are filled
+  function signalsComplete(){
+    return el('tGreen').value.trim() !== ''
+        && el('tAmber').value.trim() !== ''
+        && el('tRed').value.trim() !== '';
+  }
+  function refreshStartState(){
+    if(!running && elapsed === 0){
+      el('startBtn').disabled = !signalsComplete();
+    }
+  }
+  ['tGreen','tAmber','tRed'].forEach(function(id){
+    el(id).addEventListener('input', function(){ refreshStartState(); updateStage(); });
+  });
 
   function show(screen){
     el('screenSetup').classList.add('hidden');
@@ -343,6 +376,7 @@
     if(meeting.date) sub.push(prettyDate(meeting.date));
     el('bannerSub').textContent = sub.join('  \u00b7  ');
     renderLog();
+    refreshStartState();
     show('screenTimer');
   }
 
@@ -402,7 +436,7 @@
   }
   function reset(){
     running = false; clearInterval(ticking); elapsed = 0;
-    el('startBtn').disabled = false;
+    el('startBtn').disabled = !signalsComplete();
     el('startBtn').textContent = 'Start';
     el('pauseBtn').disabled = true;
     el('resetBtn').disabled = true;
@@ -484,17 +518,14 @@
   el('backToTimer').onclick = function(){ show('screenTimer'); };
 
   el('waBtn').onclick = function(){
-    var input = prompt('WhatsApp number to send to.\nFull international format, no + or spaces (e.g. 6591234567).\n\nLeave blank to pick a chat in WhatsApp.', '');
-    if(input === null) return; // cancelled
-    var num = input.replace(/[^0-9]/g,'');
+    var num = el('sWhatsApp').value.replace(/[^0-9]/g,'');
     var base = num ? 'https://wa.me/' + num : 'https://wa.me/';
     window.open(base + '?text=' + encodeURIComponent(buildReport()), '_blank');
   };
   el('emailBtn').onclick = function(){
-    var to = prompt('Email address to send to.\n\nLeave blank to choose the recipient in your mail app.', '');
-    if(to === null) return; // cancelled
+    var to = el('sEmail').value.trim();
     var subject = "Timer's Report \u2014 " + meeting.club + (meeting.title ? ' (' + meeting.title + ')' : '');
-    window.location.href = 'mailto:' + encodeURIComponent(to.trim())
+    window.location.href = 'mailto:' + encodeURIComponent(to)
       + '?subject=' + encodeURIComponent(subject)
       + '&body=' + encodeURIComponent(buildReport());
   };
